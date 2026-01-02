@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>馬偏詩歌生成器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+      color: #e8e8e8;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      margin-bottom: 8px;
+    }
+    
+    h1 span {
+      font-size: 48px;
+    }
+    
+    .subtitle {
+      color: rgba(255,255,255,0.5);
+      font-size: 14px;
+      letter-spacing: 0.1em;
+    }
+    
+    .kanji-count {
+      display: inline-block;
+      background: rgba(168, 216, 255, 0.2);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #a8d8ff;
+      margin-top: 8px;
+    }
+    
+    .controls {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .control-row:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      min-width: 80px;
+    }
+    
+    select, input[type="range"] {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    
+    select {
+      cursor: pointer;
+    }
+    
+    input[type="range"] {
+      width: 150px;
+      cursor: pointer;
+    }
+    
+    .range-value {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      min-width: 30px;
+    }
+    
+    .btn {
+      padding: 14px 32px;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.3s;
+      letter-spacing: 0.1em;
+    }
+    
+    .btn-generate {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      width: 100%;
+    }
+    
+    .btn-generate:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-generate:active {
+      transform: translateY(0);
+    }
+    
+    .output {
+      background: rgba(0,0,0,0.3);
+      border-radius: 16px;
+      padding: 32px;
+      min-height: 200px;
+      position: relative;
+    }
+    
+    .output-label {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.1em;
+    }
+    
+    #poem {
+      font-size: 20px;
+      line-height: 2.2;
+      letter-spacing: 0.15em;
+      white-space: pre-wrap;
+    }
+    
+    #poem .line {
+      display: block;
+      opacity: 0;
+      animation: fadeIn 0.5s forwards;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    #poem .kanji {
+      color: #a8d8ff;
+      font-weight: 500;
+    }
+    
+    #poem .modifier {
+      color: #ffd6a8;
+    }
+    
+    .kanji-list {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 24px;
+    }
+    
+    .kanji-list h3 {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 12px;
+      font-weight: normal;
+      letter-spacing: 0.1em;
+    }
+    
+    .kanji-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .kanji-chip {
+      background: rgba(168, 216, 255, 0.1);
+      border: 1px solid rgba(168, 216, 255, 0.3);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      color: #a8d8ff;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .kanji-chip:hover {
+      background: rgba(168, 216, 255, 0.2);
+    }
+    
+    .kanji-chip.selected {
+      background: rgba(168, 216, 255, 0.3);
+      border-color: #a8d8ff;
+    }
+    
+    .kanji-chip.rare {
+      border-color: rgba(255, 180, 180, 0.4);
+      color: #ffb4b4;
+    }
+    
+    .kanji-chip.rare.selected {
+      background: rgba(255, 180, 180, 0.2);
+    }
+    
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: rgba(255,255,255,0.6);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    
+    .copy-btn:hover {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .section-label {
+      font-size: 12px;
+      color: rgba(255, 214, 168, 0.7);
+      margin-top: 16px;
+      margin-bottom: 4px;
+      letter-spacing: 0.1em;
+    }
+
+    .select-btns {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .select-btns button {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: rgba(255,255,255,0.7);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .select-btns button:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .category-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 12px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 32px;
+      color: rgba(255,255,255,0.3);
+      font-size: 12px;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .stat-item {
+      background: rgba(255,255,255,0.05);
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span>馬</span>偏詩歌生成器</h1>
+      <p class="subtitle">送り仮名と修飾語で紡ぐ</p>
+      <div class="stats">
+        <span class="stat-item">29字収録</span>
+        <span class="stat-item" id="modifierCount">修飾語 0個</span>
+      </div>
+    </header>
+    
+    <div class="controls">
+      <div class="control-row">
+        <label>形式</label>
+        <select id="format">
+          <option value="free">自由詩</option>
+          <option value="song">歌詞（Verse/Chorus）</option>
+          <option value="tanka">短歌風</option>
+          <option value="haiku">俳句風連作</option>
+        </select>
+      </div>
+      
+      <div class="control-row">
+        <label>行数</label>
+        <input type="range" id="lines" min="3" max="12" value="6">
+        <span class="range-value" id="linesValue">6</span>
+      </div>
+      
+      <div class="control-row">
+        <label>修飾の濃さ</label>
+        <input type="range" id="density" min="1" max="3" value="2">
+        <span class="range-value" id="densityValue">中</span>
+      </div>
+      
+      <div class="control-row">
+        <button class="btn btn-generate" id="generateBtn">生成する</button>
+      </div>
+    </div>
+    
+    <div class="output">
+      <span class="output-label">生成された詩</span>
+      <button class="copy-btn" id="copyBtn">コピー</button>
+      <div id="poem"></div>
+    </div>
+    
+    <div class="kanji-list">
+      <h3>使用する馬偏漢字（タップで選択/解除）</h3>
+      <div class="select-btns">
+        <button id="selectAll">すべて選択</button>
+        <button id="selectNone">すべて解除</button>
+        <button id="selectCommon">常用のみ</button>
+      </div>
+      <span class="category-label">◆ 常用・一般</span>
+      <div class="kanji-grid" id="kanjiGridCommon"></div>
+      <span class="category-label">◆ 雅語・漢語</span>
+      <div class="kanji-grid" id="kanjiGridRare"></div>
+    </div>
+    
+    <footer>
+      馬偏の漢字には、動きと感情が宿る
+    </footer>
+  </div>
+
+  <script>
+    // 共通修飾語プール
+    const sharedModifiers = {
+      // 感情系
+      emotion: [
+        '切なく', '焦がれるように', '震えながら', '密やかに', '狂おしく',
+        '愛おしく', '悲しみを抱え', '喜びに満ち', '怒りを込め', '恐れを知らず',
+        '憧れを胸に', '絶望の淵で', '希望を見つめ', '嫉妬に燃え', '憎しみを超え',
+        '寂しさの中', '虚しさを抱き', '誇らしげに', '恥じらいながら', '後悔を噛み締め'
+      ],
+      // 身体系
+      body: [
+        '息を切らし', '汗にまみれ', '傷だらけで', '血を流しながら', '涙を拭い',
+        '拳を握り', '歯を食いしばり', '膝を折り', '背を向け', '手を伸ばし',
+        '目を閉じ', '耳を澄まし', '声を枯らし', '肩で息をし', '足を引きずり',
+        '心臓を鳴らし', '全身で', '魂ごと', '骨の髄まで', '五感すべてで'
+      ],
+      // 時間系
+      time: [
+        '永遠に', '刹那の', '幾度も', '果てしなく', '束の間',
+        '千年の', '一瞬で', '長い長い', '儚い', '終わりなき',
+        '始まりの', '最後の', '繰り返す', '止まらない', '過ぎ去る',
+        '迫り来る', '遠い日の', '明日への', '今この瞬間', '時を超え'
+      ],
+      // 自然系
+      nature: [
+        '雷のように', '波のように', '炎のように', '風のように', '雨のように',
+        '雪のように', '霧のように', '嵐のように', '光のように', '影のように',
+        '月のように', '星のように', '太陽のように', '海のように', '山のように',
+        '川のように', '空のように', '大地のように', '雲のように', '虹のように'
+      ],
+      // 抽象系
+      abstract: [
+        '虚ろな', '儚く', '禍々しい', '神聖な', '荘厳な',
+        '静謐な', '混沌とした', '純粋な', '不可解な', '奇妙な',
+        '美しい', '醜い', '崇高な', '卑しい', '清らかな',
+        '穢れた', '完璧な', '不完全な', '永遠の', '刹那の'
+      ],
+      // 様態系
+      manner: [
+        'ひたすら', '黙々と', '淡々と', '激しく', '静かに',
+        '力強く', '儚げに', '優しく', '残酷に', '無慈悲に',
+        '慈悲深く', '無邪気に', '狡猾に', '誠実に', '不実に',
+        '大胆に', '臆病に', '勇敢に', '愚かにも', '賢明に'
+      ],
+      // 場所・方向系
+      place: [
+        '遠くへ', '彼方へ', '深淵へ', '天へ', '地へ',
+        '東へ', '西へ', '北へ', '南へ', '中心へ',
+        '外へ', '内へ', '上へ', '下へ', '前へ',
+        '後ろへ', 'どこまでも', 'どこへでも', '故郷へ', '未知へ'
+      ],
+      // 比喩系
+      metaphor: [
+        '夢のように', '幻のように', '鏡のように', '剣のように', '盾のように',
+        '矢のように', '弾丸のように', '獣のように', '鳥のように', '魚のように',
+        '蝶のように', '蛇のように', '龍のように', '鬼のように', '神のように',
+        '子どものように', '老人のように', '王のように', '奴隷のように', '旅人のように'
+      ]
+    };
+
+    // 馬偏漢字データベース（完全版・修飾語増量）
+    const kanjiData = [
+      // === 常用・一般 ===
+      {
+        kanji: '馬',
+        readings: ['うま', 'ま'],
+        forms: ['馬', '馬のように', '馬が走る', '馬に乗る', '馬を駆る'],
+        jukugo: ['竹馬の友', '木馬', '馬車', '馬力', '名馬', '野馬', '天馬'],
+        modifiers: [
+          '白い', '黒い', '野生の', '孤独な', '疾走する',
+          '誇り高き', '傷ついた', '美しい', '荒々しい', '従順な',
+          '気高い', '逞しい', '華奢な', '老いた', '若い',
+          '狂った', '眠れる', '目覚めた', '囚われた', '解き放たれた'
+        ],
+        mood: 'basic',
+        common: true
+      },
+      {
+        kanji: '駆',
+        readings: ['かける', 'かけ', 'く'],
+        forms: ['駆ける', '駆け出す', '駆け抜ける', '駆け寄る', '駆け巡る', '駆け上がる', '駆け下りる'],
+        jukugo: ['駆動', '駆使', '駆除', '先駆', '駆け引き', '疾駆', '駆逐'],
+        modifiers: [
+          '風のように', '光のように', '矢のように', '獣のように', '夢の中を',
+          '息を切らし', '涙を振り切り', '過去を捨て', '未来へ向かい', '愛する者のため',
+          '何も考えず', '本能のまま', '死に物狂いで', '歓喜に震え', '恐怖に追われ',
+          '全速力で', '止まることなく', '振り返らず', '一心不乱に', '命懸けで'
+        ],
+        mood: 'dynamic',
+        common: true
+      },
+      {
+        kanji: '驚',
+        readings: ['おどろく', 'おどろき', 'きょう'],
+        forms: ['驚く', '驚かす', '驚き', '驚かされる', '驚きに満ちた', '驚き果てる', '驚嘆する'],
+        jukugo: ['驚愕', '驚嘆', '驚異', '驚天動地', '驚喜', '驚倒', '吃驚'],
+        modifiers: [
+          'ふいに', '静かに', '深く', '言葉を失うほど', '胸の奥で',
+          '目を見開き', '息を呑み', '立ち尽くし', '凍りつき', '震えながら',
+          '喜びに', '恐怖に', '悲しみに', '怒りに', '美しさに',
+          '真実に', '嘘に', '奇跡に', '運命に', '愛の深さに'
+        ],
+        mood: 'emotional',
+        common: true
+      },
+      {
+        kanji: '騒',
+        readings: ['さわぐ', 'ざわめく', 'そう'],
+        forms: ['騒ぐ', '騒がしい', '騒めく', '騒ぎ立てる', '騒然と', '騒ぎ出す'],
+        jukugo: ['騒音', '騒動', '喧騒', '物騒', '騒乱', '狂騒', '騒擾'],
+        modifiers: [
+          '心が', '葉が', '街が', '血が', '記憶が',
+          '魂が', '世界が', '時代が', '群衆が', '感情が',
+          '抑えきれず', '止められず', '激しく', '密かに', '狂ったように',
+          '歓喜に', '怒りに', '恐怖に', '興奮に', '不安に'
+        ],
+        mood: 'dynamic',
+        common: true
+      },
+      {
+        kanji: '駅',
+        readings: ['えき'],
+        forms: ['駅', '駅に立つ', '駅を発つ', '駅で待つ', '駅を過ぎる', '駅に降り立つ', '駅で別れる'],
+        jukugo: ['終着駅', '始発駅', '駅舎', '駅前', '駅弁', '宿駅', '中継駅'],
+        modifiers: [
+          '見知らぬ', '最後の', '始発の', '終着の', '雨の',
+          '無人の', '懐かしい', '寂れた', '賑やかな', '静まり返った',
+          '霧に包まれた', '夜明けの', '黄昏の', '雪に埋もれた', '桜舞う',
+          '別れの', '出会いの', '約束の', '思い出の', '運命の'
+        ],
+        mood: 'lyrical',
+        common: true
+      },
+      {
+        kanji: '駒',
+        readings: ['こま'],
+        forms: ['駒', '駒のように', '駒を進める', '一駒', '駒を動かす', '駒となる'],
+        jukugo: ['将棋の駒', '端駒', '駒鳥', '独楽', '若駒', '名駒'],
+        modifiers: [
+          '若い', '疲れた', '気高い', '孤独な', '自由な',
+          '捨てられた', '選ばれた', '磨かれた', '古びた', '新しい',
+          '最後の', '最強の', '無力な', '運命を背負う', '歴史を刻む',
+          '誰かの', '自分だけの', '失われた', '取り戻した', '守るべき'
+        ],
+        mood: 'symbolic',
+        common: true
+      },
+      {
+        kanji: '験',
+        readings: ['ためす', 'けん', 'げん'],
+        forms: ['験す', '験される', '験のない', '験を積む', '験に出る'],
+        jukugo: ['経験', '実験', '体験', '試験', '霊験', '効験', '修験'],
+        modifiers: [
+          'その身を', '覚悟を', '運を', '愛を', '真実を',
+          '信念を', '勇気を', '知恵を', '忍耐を', '誠意を',
+          '幾度も', '初めて', '最後に', '密かに', '公然と',
+          '己を', '他者を', '世界を', '神を', '運命を'
+        ],
+        mood: 'philosophical',
+        common: true
+      },
+      {
+        kanji: '騎',
+        readings: ['き'],
+        forms: ['騎る', '騎士のように', '一騎で', '騎乗する', '騎馬で'],
+        jukugo: ['騎士', '騎乗', '騎兵', '一騎打ち', '一騎当千', '騎馬', '鉄騎'],
+        modifiers: [
+          '誇り高き', '孤高の', '最後の', '夜明けの', '影の',
+          '白銀の', '漆黒の', '伝説の', '無名の', '堕ちた',
+          '聖なる', '呪われた', '不屈の', '悲しみを背負う', '希望を運ぶ',
+          '忠誠を誓う', '裏切られた', '復讐に燃える', '愛に生きる', '死を恐れぬ'
+        ],
+        mood: 'heroic',
+        common: true
+      },
+      {
+        kanji: '駐',
+        readings: ['とまる', 'とどまる', 'ちゅう'],
+        forms: ['駐まる', '駐める', '駐めておく', '駐留する', '駐屯する'],
+        jukugo: ['駐車', '駐在', '駐留', '駐屯', '常駐', '進駐'],
+        modifiers: [
+          'しばし', '静かに', '時を', '足を', '息を',
+          '永遠に', '一瞬だけ', '迷いながら', '決意を固め', '覚悟を決め',
+          '誰にも知られず', 'ひっそりと', '堂々と', '恐る恐る', '毅然と',
+          '心を', '思いを', '視線を', '意識を', '存在を'
+        ],
+        mood: 'still',
+        common: true
+      },
+      {
+        kanji: '駄',
+        readings: ['だ'],
+        forms: ['駄目になる', '駄目だと知りながら', '駄目でも', '駄目なりに'],
+        jukugo: ['駄目', '無駄', '駄菓子', '駄作', '駄洒落', '下駄', '駄馬', '駄賃'],
+        modifiers: [
+          'きっと', 'どうせ', 'やっぱり', 'それでも', '分かっていて',
+          '認めたくない', '受け入れられない', '諦めきれず', '悔しいけど', '仕方なく',
+          '何度やっても', '最初から', '結局は', '案の定', '予想通り',
+          '愛すべき', '憎めない', '許せない', '笑える', '泣ける'
+        ],
+        mood: 'melancholic',
+        common: true
+      },
+      {
+        kanji: '駿',
+        readings: ['しゅん'],
+        forms: ['駿馬のように', '駿足で', '駿河を越え', '駿才を発揮し'],
+        jukugo: ['駿馬', '駿足', '駿河', '駿才', '駿逸', '駿傑'],
+        modifiers: [
+          '若き', '誇り高き', '風を切る', '稀代の', '伝説の',
+          '無敵の', '天賦の', '磨き抜かれた', '生まれながらの', '鍛え上げられた',
+          '誰もが認める', '隠された', '目覚めた', '解き放たれた', '封じられた',
+          '眩い', '恐るべき', '美しき', '孤独な', '誇らしき'
+        ],
+        mood: 'heroic',
+        common: true
+      },
+      {
+        kanji: '騰',
+        readings: ['とう', 'あがる'],
+        forms: ['騰がる', '騰がり続ける', '騰り詰める', '騰貴する'],
+        jukugo: ['高騰', '沸騰', '騰貴', '奔騰', '暴騰', '急騰', '昇騰'],
+        modifiers: [
+          '激しく', '止まらず', '熱く', '狂おしく', '天を突くほど',
+          '制御不能に', '際限なく', '爆発的に', '静かに', '確実に',
+          '感情が', '血潮が', '気持ちが', '期待が', '不安が',
+          '怒りが', '喜びが', '興奮が', '欲望が', '情熱が'
+        ],
+        mood: 'dynamic',
+        common: true
+      },
+      {
+        kanji: '馴',
+        readings: ['なれる', 'なじむ', 'じゅん'],
+        forms: ['馴れる', '馴染む', '馴れ合う', '馴らす', '馴れ親しむ', '馴化する'],
+        jukugo: ['馴染み', '馴致', '馴鹿', '馴合い', '馴れ初め'],
+        modifiers: [
+          'やがて', 'いつしか', '痛みに', '孤独に', '沈黙に',
+          '日常に', '非日常に', '喪失に', '存在に', '不在に',
+          '少しずつ', '急速に', '自然と', '無理やり', '望んで',
+          '嫌々ながら', '喜んで', '諦めて', '受け入れて', '抗いながら'
+        ],
+        mood: 'melancholic',
+        common: true
+      },
+      {
+        kanji: '騙',
+        readings: ['だます', 'だまされる'],
+        forms: ['騙す', '騙される', '騙し合う', '騙されたふり', '騙し続ける', '騙し通す'],
+        jukugo: ['詐騙', '騙し絵', '騙し討ち'],
+        modifiers: [
+          '優しく', '巧みに', '自分を', '世界に', '時に',
+          '甘い言葉で', '冷たい嘘で', '美しい幻想で', '残酷な真実で', '都合よく',
+          '悪意なく', '悪意を込め', '愛ゆえに', '憎しみゆえに', '生きるために',
+          '守るために', '逃げるために', '勝つために', '負けないために', '終わらせるために'
+        ],
+        mood: 'dark',
+        common: true
+      },
+      {
+        kanji: '馳',
+        readings: ['はせる', 'ち'],
+        forms: ['馳せる', '馳せ参じる', '馳せ戻る', '馳走する', '馳せ巡る'],
+        jukugo: ['馳走', '奔馳', '馳名', '馳駆'],
+        modifiers: [
+          '想いを', '遠くへ', '過去へ', '未来へ', '君のもとへ',
+          '故郷へ', '戦場へ', '愛する人へ', '夢の中へ', '記憶の彼方へ',
+          '心を', '魂を', '視線を', '意識を', '全存在を',
+          'ひたすら', '一途に', '狂おしく', '切なく', '激しく'
+        ],
+        mood: 'lyrical',
+        common: true
+      },
+
+      // === 雅語・漢語 ===
+      {
+        kanji: '驀',
+        readings: ['ばく', 'まく'],
+        forms: ['驀進する', '驀然と', '驀地に', '驀として'],
+        jukugo: ['驀進', '驀然', '驀地'],
+        modifiers: [
+          'ひたすら', '一心に', '前だけを見て', '迷わず', '振り返らず',
+          '脇目も振らず', '周囲を顧みず', '己を信じ', '運命に従い', '本能のままに',
+          '恐れを捨て', '疑いを捨て', '過去を捨て', '未来だけを見て', '今この瞬間を',
+          '狂気のように', '正気を失い', '覚悟を決め', '決意を胸に', '信念を貫き'
+        ],
+        mood: 'dynamic',
+        common: false
+      },
+      {
+        kanji: '驟',
+        readings: ['しゅう'],
+        forms: ['驟雨のように', '驟然と', '驟かに', '驟雨が降る'],
+        jukugo: ['驟雨', '驟然', '驟寒'],
+        modifiers: [
+          '突然の', '激しい', '一瞬の', '夏の', '涙のような',
+          '予期せぬ', '避けられない', '容赦ない', '清らかな', '汚れた',
+          '冷たい', '温かい', '痛い', '心地よい', '懐かしい',
+          '恐ろしい', '美しい', '儚い', '激烈な', '静かな'
+        ],
+        mood: 'lyrical',
+        common: false
+      },
+      {
+        kanji: '駕',
+        readings: ['が'],
+        forms: ['駕籠に揺られ', '凌駕する', '凌駕して', '駕を降り'],
+        jukugo: ['駕籠', '凌駕', '乗駕', '鸞駕', '御駕'],
+        modifiers: [
+          'すべてを', '限界を', '過去を', '運命を', '己を',
+          '常識を', '想像を', '期待を', '恐怖を', '絶望を',
+          '圧倒的に', '静かに', '確実に', '劇的に', '密かに',
+          '誰にも気づかれず', '堂々と', '華麗に', '力強く', '優雅に'
+        ],
+        mood: 'heroic',
+        common: false
+      },
+      {
+        kanji: '驕',
+        readings: ['おごる', 'きょう'],
+        forms: ['驕る', '驕り', '驕らず', '驕り高ぶる', '驕りを捨て'],
+        jukugo: ['驕慢', '驕奢', '驕兵', '驕傲', '驕り'],
+        modifiers: [
+          '決して', '若さに', '力に', '美しさに', '知恵に',
+          '富に', '地位に', '名声に', '才能に', '勝利に',
+          '愚かにも', '無自覚に', '意図的に', '傲然と', '堂々と',
+          '密かに', '露骨に', '危険なほど', '破滅的に', '致命的に'
+        ],
+        mood: 'philosophical',
+        common: false
+      },
+      {
+        kanji: '駁',
+        readings: ['ばく', 'はく'],
+        forms: ['反駁する', '駁論を展げ', '論駁する', '駁す'],
+        jukugo: ['反駁', '斑駁', '論駁', '駁論', '駁議'],
+        modifiers: [
+          '鋭く', '静かに', '容赦なく', '理路整然と', '言葉で',
+          '論理で', '証拠で', '感情で', '直感で', '経験で',
+          '冷徹に', '情熱的に', '皮肉を込め', '敬意を込め', '軽蔑を込め',
+          '完膚なきまで', '徹底的に', '部分的に', '巧みに', '正面から'
+        ],
+        mood: 'philosophical',
+        common: false
+      },
+      {
+        kanji: '駭',
+        readings: ['がい', 'おどろく'],
+        forms: ['駭く', '駭然と', '駭かす', '駭きを隠せず'],
+        jukugo: ['駭然', '驚駭', '震駭'],
+        modifiers: [
+          '深く', '突如', '魂が', '世界が', '真実に',
+          '嘘に', '裏切りに', '奇跡に', '悲劇に', '喜劇に',
+          '言葉を失い', '立ち尽くし', '凍りつき', '震え上がり', '息を呑み',
+          '目を見開き', '心臓を掴まれ', '背筋を凍らせ', '全身を貫かれ', '思考を停止し'
+        ],
+        mood: 'emotional',
+        common: false
+      },
+      {
+        kanji: '騨',
+        readings: ['だ'],
+        forms: ['飛騨の山', '飛騨の里', '飛騨を越え', '飛騨に眠る'],
+        jukugo: ['飛騨', '飛騨山脈'],
+        modifiers: [
+          '遠い', '懐かしい', '雪深い', '古の', '秘境の',
+          '神秘の', '伝説の', '忘れられた', '隠された', '守られた',
+          '美しい', '厳しい', '優しい', '静かな', '荒々しい',
+          '春の', '夏の', '秋の', '冬の', '四季の'
+        ],
+        mood: 'lyrical',
+        common: false
+      },
+      {
+        kanji: '騏',
+        readings: ['き'],
+        forms: ['騏驥のごとく', '騏驎と並び', '騏驥を求め', '騏駿の如く'],
+        jukugo: ['騏驥', '騏驎', '騏駿'],
+        modifiers: [
+          '伝説の', '幻の', '千里を駆ける', '天の', '至高の',
+          '唯一無二の', '比類なき', '誰もが憧れる', '選ばれし', '生まれながらの',
+          '隠された', '封印された', '目覚めた', '甦った', '再臨する',
+          '神話の', '歴史の', '記憶の', '夢の', '現実の'
+        ],
+        mood: 'heroic',
+        common: false
+      },
+      {
+        kanji: '驢',
+        readings: ['ろ'],
+        forms: ['驢馬のように', '驢馬が歩く', '驢馬を引き', '驢馬に乗り'],
+        jukugo: ['驢馬', '驢鳴'],
+        modifiers: [
+          '愚直な', '黙々と', '荷を負う', '埃まみれの', '孤独な',
+          '疲れ果てた', '忍耐強い', '従順な', '頑固な', '不器用な',
+          '見下された', '軽んじられた', '必要とされる', '働き続ける', '歩み続ける',
+          '誰にも褒められず', 'それでも', '淡々と', '黙って', '文句も言わず'
+        ],
+        mood: 'melancholic',
+        common: false
+      },
+      {
+        kanji: '騾',
+        readings: ['ら'],
+        forms: ['騾馬のように', '騾馬が行く', '騾馬を駆り', '騾馬の背に'],
+        jukugo: ['騾馬'],
+        modifiers: [
+          '逞しい', '混血の', '荒野を行く', '忍耐の', '寡黙な',
+          '強靭な', '不屈の', '孤高の', '誇りある', '卑しめられた',
+          '二つの血を持つ', '境界に立つ', 'どちらでもない', 'どちらでもある', '独自の',
+          '理解されない', '受け入れられない', 'それでも生きる', '己の道を', '黙々と'
+        ],
+        mood: 'melancholic',
+        common: false
+      },
+      {
+        kanji: '駟',
+        readings: ['し'],
+        forms: ['駟馬を駆り', '駟馬が奔る', '駟馬の轟き', '駟馬に乗り'],
+        jukugo: ['駟馬', '駟介'],
+        modifiers: [
+          '四頭の', '揃いの', '轟音の', '古代の', '王の',
+          '皇帝の', '将軍の', '神々の', '勝利の', '凱旋の',
+          '威風堂々と', '大地を揺らし', '風を切り', '敵を蹴散らし', '民を導き',
+          '歴史を刻み', '伝説となり', '神話に残り', '語り継がれ', '永遠に'
+        ],
+        mood: 'heroic',
+        common: false
+      },
+      {
+        kanji: '駢',
+        readings: ['べん'],
+        forms: ['駢文のように', '駢儷の美', '駢馬の如く', '駢列する'],
+        jukugo: ['駢文', '駢儷', '駢馬', '駢列'],
+        modifiers: [
+          '対句の', '整然と', '美しき', '古典の', '修辞の',
+          '調和の', '均衡の', '対称の', '完璧な', '計算された',
+          '技巧を凝らし', '言葉を選び', '韻を踏み', '響きを整え', '意味を重ね',
+          '格調高く', '優雅に', '荘厳に', '流麗に', '典雅に'
+        ],
+        mood: 'literary',
+        common: false
+      },
+      {
+        kanji: '騁',
+        readings: ['てい'],
+        forms: ['馳騁する', '騁せる', '縦横に騁り', '騁望する'],
+        jukugo: ['馳騁', '騁望', '騁懐'],
+        modifiers: [
+          '縦横に', '自在に', '天地を', '思うまま', '野を越え',
+          '山を越え', '海を越え', '国を越え', '時を越え', '限界を越え',
+          '束縛なく', '制限なく', '恐れなく', '迷いなく', '躊躇なく',
+          '喜びに', '怒りに', '悲しみに', '情熱に', '野心に'
+        ],
+        mood: 'dynamic',
+        common: false
+      },
+      {
+        kanji: '駘',
+        readings: ['たい'],
+        forms: ['駑駘のように', '駘蕩と', '駘然と', '駘駘として'],
+        jukugo: ['駑駘', '駘蕩', '駘然'],
+        modifiers: [
+          '愚鈍な', '鈍い', '春風', 'のどかな', 'ゆるやかな',
+          '穏やかな', '平和な', '怠惰な', '無気力な', '無関心な',
+          '心地よい', '眠気を誘う', '時間を忘れ', '世事を離れ', '俗世を忘れ',
+          'ぼんやりと', 'うっとりと', '夢見心地で', '幸福に', '満足して'
+        ],
+        mood: 'still',
+        common: false
+      },
+      {
+        kanji: '駙',
+        readings: ['ふ'],
+        forms: ['駙馬となり', '駙馬の身', '駙馬として', '駙馬に選ばれ'],
+        jukugo: ['駙馬', '駙馬都尉'],
+        modifiers: [
+          '皇帝の', '選ばれし', '宮廷の', '栄華の', '運命の',
+          '望まぬ', '望んだ', '誇り高き', '屈辱の', '光栄の',
+          '愛なき', '愛ある', '政略の', '偶然の', '必然の',
+          '華やかな', '孤独な', '束縛された', '自由を失った', '権力を得た'
+        ],
+        mood: 'heroic',
+        common: false
+      }
+    ];
+
+    // 接続詞・助詞
+    const connectors = [
+      '', 'そして', 'だから', 'けれど', 'それでも', 'いつか', 'もう', 'まだ', 'ただ', 'ふと',
+      'あるいは', 'やがて', 'しかし', 'だが', 'ゆえに', 'されど', 'なお', 'また', 'さらに', 'ついに'
+    ];
+    
+    // 文末表現
+    const endings = [
+      '', 'のだ', 'のか', 'たい', 'だろう', 'かもしれない', 'のだった', 'ように',
+      'のだろうか', 'のだろう', 'べきだ', 'べきか', 'だった', 'だったのか', 'に違いない',
+      'はずだ', 'はずがない', 'わけがない', 'しかない', 'ほかない'
+    ];
+    
+    // 季語・情景
+    const scenes = [
+      '月明かりの下', '夜明け前', '黄昏に', '雨上がり', '風の中', '静寂の中', '夢の淵で', '記憶の彼方',
+      '星降る夜', '霧の中', '雪原を', '荒野にて', '廃墟の中', '古城の前', '海辺で', '山頂に',
+      '森の奥', '川沿いを', '街角で', '路地裏で', '空の下', '地の底で', '炎の中', '氷の世界で',
+      '桜舞う季節', '紅葉の頃', '新緑の中', '枯葉の道', '満月の夜', '新月の闇', '嵐の後', '凪の海で'
+    ];
+
+    let selectedKanji = new Set(kanjiData.filter(k => k.common).map(k => k.kanji));
+    
+    // DOM要素
+    const formatSelect = document.getElementById('format');
+    const linesSlider = document.getElementById('lines');
+    const linesValue = document.getElementById('linesValue');
+    const densitySlider = document.getElementById('density');
+    const densityValue = document.getElementById('densityValue');
+    const generateBtn = document.getElementById('generateBtn');
+    const poemDiv = document.getElementById('poem');
+    const kanjiGridCommon = document.getElementById('kanjiGridCommon');
+    const kanjiGridRare = document.getElementById('kanjiGridRare');
+    const copyBtn = document.getElementById('copyBtn');
+    const selectAllBtn = document.getElementById('selectAll');
+    const selectNoneBtn = document.getElementById('selectNone');
+    const selectCommonBtn = document.getElementById('selectCommon');
+    const modifierCountEl = document.getElementById('modifierCount');
+    
+    // 修飾語の総数を計算
+    function countModifiers() {
+      let count = 0;
+      kanjiData.forEach(k => count += k.modifiers.length);
+      Object.values(sharedModifiers).forEach(arr => count += arr.length);
+      return count;
+    }
+    
+    // 漢字グリッド生成
+    function renderKanjiGrid() {
+      kanjiGridCommon.innerHTML = '';
+      kanjiGridRare.innerHTML = '';
+      
+      kanjiData.forEach(data => {
+        const chip = document.createElement('span');
+        chip.className = 'kanji-chip' + (selectedKanji.has(data.kanji) ? ' selected' : '') + (!data.common ? ' rare' : '');
+        chip.textContent = `${data.kanji}`;
+        chip.title = data.readings.join('・') + '：' + (data.jukugo || data.forms).slice(0, 3).join('、');
+        chip.addEventListener('click', () => {
+          if (selectedKanji.has(data.kanji)) {
+            selectedKanji.delete(data.kanji);
+          } else {
+            selectedKanji.add(data.kanji);
+          }
+          chip.classList.toggle('selected');
+        });
+        
+        if (data.common) {
+          kanjiGridCommon.appendChild(chip);
+        } else {
+          kanjiGridRare.appendChild(chip);
+        }
+      });
+      
+      modifierCountEl.textContent = `修飾語 ${countModifiers()}個`;
+    }
+    
+    // 選択ボタン
+    selectAllBtn.addEventListener('click', () => {
+      selectedKanji = new Set(kanjiData.map(k => k.kanji));
+      renderKanjiGrid();
+    });
+    
+    selectNoneBtn.addEventListener('click', () => {
+      selectedKanji = new Set();
+      renderKanjiGrid();
+    });
+    
+    selectCommonBtn.addEventListener('click', () => {
+      selectedKanji = new Set(kanjiData.filter(k => k.common).map(k => k.kanji));
+      renderKanjiGrid();
+    });
+    
+    // ランダム選択
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+    
+    function pickKanji() {
+      const available = kanjiData.filter(k => selectedKanji.has(k.kanji));
+      if (available.length === 0) return kanjiData[0];
+      return pick(available);
+    }
+    
+    // 修飾語を取得（専用＋共通プールから）
+    function getModifier(data) {
+      // 70%で専用修飾語、30%で共通プールから
+      if (Math.random() < 0.7) {
+        return pick(data.modifiers);
+      } else {
+        const poolKey = pick(Object.keys(sharedModifiers));
+        return pick(sharedModifiers[poolKey]);
+      }
+    }
+    
+    // 1行生成
+    function generateLine(density) {
+      const data = pickKanji();
+      
+      // 熟語か活用形かをランダム選択
+      const useJukugo = data.jukugo && data.jukugo.length > 0 && Math.random() > 0.4;
+      const form = useJukugo ? pick(data.jukugo) : pick(data.forms);
+      const modifier = getModifier(data);
+      const connector = Math.random() > 0.7 ? pick(connectors) : '';
+      const ending = Math.random() > 0.6 ? pick(endings) : '';
+      
+      let line = '';
+      
+      if (density === 1) {
+        // 軽め
+        line = form;
+      } else if (density === 2) {
+        // 中程度
+        if (useJukugo) {
+          line = connector ? `${connector} ${modifier}${form}` : `${modifier}${form}`;
+        } else {
+          line = connector ? `${connector} ${modifier}${form}` : `${modifier}${form}`;
+        }
+      } else {
+        // 濃いめ
+        const scene = Math.random() > 0.5 ? pick(scenes) + '　' : '';
+        line = `${scene}${connector ? connector + ' ' : ''}${modifier}${form}${ending}`;
+      }
+      
+      return { line: line.trim(), kanji: data.kanji, modifier };
+    }
+    
+    // 詩全体を生成
+    function generatePoem() {
+      const format = formatSelect.value;
+      const numLines = parseInt(linesSlider.value);
+      const density = parseInt(densitySlider.value);
+      
+      if (selectedKanji.size === 0) {
+        poemDiv.innerHTML = '<span class="line" style="animation-delay:0ms;opacity:1;color:rgba(255,255,255,0.5);">漢字を選択してください</span>';
+        return;
+      }
+      
+      let lines = [];
+      let rawText = '';
+      
+      if (format === 'free') {
+        for (let i = 0; i < numLines; i++) {
+          const { line, kanji, modifier } = generateLine(density);
+          lines.push({ text: line, kanji, modifier, delay: i * 150 });
+        }
+      } else if (format === 'song') {
+        // Verse
+        lines.push({ text: '【Verse】', isLabel: true, delay: 0 });
+        for (let i = 0; i < 4; i++) {
+          const { line, kanji, modifier } = generateLine(density);
+          lines.push({ text: line, kanji, modifier, delay: (i + 1) * 150 });
+        }
+        // Chorus
+        lines.push({ text: '', delay: 750 });
+        lines.push({ text: '【Chorus】', isLabel: true, delay: 900 });
+        for (let i = 0; i < 4; i++) {
+          const { line, kanji, modifier } = generateLine(Math.min(density + 1, 3));
+          lines.push({ text: line, kanji, modifier, delay: (i + 7) * 150 });
+        }
+      } else if (format === 'tanka') {
+        // 短歌風（5-7-5-7-7のリズム感）
+        for (let i = 0; i < 5; i++) {
+          const { line, kanji, modifier } = generateLine(2);
+          lines.push({ text: line, kanji, modifier, delay: i * 200 });
+        }
+      } else if (format === 'haiku') {
+        // 俳句風連作
+        for (let h = 0; h < 3; h++) {
+          for (let i = 0; i < 3; i++) {
+            const { line, kanji, modifier } = generateLine(1);
+            lines.push({ text: line, kanji, modifier, delay: (h * 4 + i) * 150 });
+          }
+          if (h < 2) {
+            lines.push({ text: '', delay: (h * 4 + 3) * 150 });
+          }
+        }
+      }
+      
+      // 表示
+      poemDiv.innerHTML = '';
+      lines.forEach((item, index) => {
+        const span = document.createElement('span');
+        span.className = 'line';
+        span.style.animationDelay = `${item.delay}ms`;
+        
+        if (item.isLabel) {
+          span.innerHTML = `<span class="section-label">${item.text}</span>`;
+        } else if (item.text === '') {
+          span.innerHTML = '<br>';
+        } else {
+          // 漢字と修飾語をハイライト
+          let html = item.text;
+          if (item.kanji) {
+            const kanjiRegex = new RegExp(`(${item.kanji})`, 'g');
+            html = html.replace(kanjiRegex, '<span class="kanji">$1</span>');
+          }
+          if (item.modifier && item.modifier.length > 1) {
+            html = html.replace(item.modifier, `<span class="modifier">${item.modifier}</span>`);
+          }
+          span.innerHTML = html;
+        }
+        
+        poemDiv.appendChild(span);
+        rawText += item.text + '\n';
+      });
+      
+      // コピー用テキストを保存
+      poemDiv.dataset.rawText = rawText.trim();
+    }
+    
+    // イベントリスナー
+    linesSlider.addEventListener('input', () => {
+      linesValue.textContent = linesSlider.value;
+    });
+    
+    densitySlider.addEventListener('input', () => {
+      const labels = ['軽', '中', '濃'];
+      densityValue.textContent = labels[densitySlider.value - 1];
+    });
+    
+    generateBtn.addEventListener('click', generatePoem);
+    
+    copyBtn.addEventListener('click', () => {
+      const text = poemDiv.dataset.rawText || poemDiv.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = 'コピーしました';
+        setTimeout(() => {
+          copyBtn.textContent = 'コピー';
+        }, 2000);
+      });
+    });
+    
+    // 初期化
+    renderKanjiGrid();
+    generatePoem();
+  </script>
+</body>
+</html>
